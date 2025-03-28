@@ -1,12 +1,6 @@
 {
-    "licenses": [
-        {
-            "key": "15252076",
-            "is_reserved": false
-        },
-        {
-            "key": "Vyrkuz05",
-            "is_reserved": false
-        }
-    ]
+  "licenses": [
+    "15252076",
+    "Vyrkuz05"
+  ]
 }
