@@ -5,24 +5,56 @@ import asyncio
 import config  # On importe les paramètres utilisateur
 import json
 
-# Fonction pour charger les clés valides depuis le fichier JSON
+# Fonction pour récupérer les clés valides depuis GitHub
 def load_licenses():
-    with open("licenses.json", "r") as file:
-        data = json.load(file)
+    url = "https://raw.githubusercontent.com/bastosteo/BOTelegram/main/licenses.json"  # URL brute du fichier JSON
+    response = requests.get(url)  # Effectue la requête GET pour récupérer le fichier
+    if response.status_code == 200:
+        data = response.json()  # Parse le JSON si la requête est réussie
         return data["licenses"]
+    else:
+        print(f"Erreur lors du téléchargement du fichier : {response.status_code}")
+        return []
 
-# Vérifier si la clé du client est valide
-def is_license_valid(license_key):
-    valid_licenses = load_licenses()
-    return license_key in valid_licenses
+# Fonction pour vérifier et mettre à jour l'état d'une clé
+def update_license_status(key, reserved):
+    licenses = load_licenses()  # Charge les clés depuis GitHub
+    for license in licenses:
+        if license["key"] == key:
+            license["is_reserved"] = reserved
+            break
+    # Sauvegarde les nouvelles données dans le fichier
+    with open("licenses.json", "w") as file:
+        json.dump({"licenses": licenses}, file, indent=4)
+
+# Vérifier si la clé de licence est valide et non réservée
+def is_license_valid_and_available(license_key):
+    licenses = load_licenses()  # Charge les clés depuis GitHub
+    for license in licenses:
+        if license["key"] == license_key:
+            if license["is_reserved"]:
+                send_alert(f"Alerte : La clé {license_key} est déjà utilisée par une autre personne.")
+                return False  # La clé est déjà réservée, envoie une alerte
+            else:
+                return True  # La clé est valide et disponible
+    return False  # La clé n'existe pas
+
+# Vérifier si la clé de licence est valide et réserver la clé
+def reserve_license(license_key):
+    if is_license_valid_and_available(license_key):
+        # Réserve la clé (la rend indisponible)
+        update_license_status(license_key, reserved=True)
+        return True
+    else:
+        return False
 
 # Vérification de la clé de licence
-if is_license_valid(config.license_key):
-    print("Licence valide. Démarrage du bot...")
-    # Démarre le bot ici
+if reserve_license(config.license_key):  # Vérifie et réserve la clé définie dans config.py
+    print("Licence valide et réservée. Démarrage du bot...")
+    # Démarre le bot ici (ajoute ton code de démarrage de bot)
 else:
-    print("Clé de licence invalide. Arrêt du bot.")
-    exit()  # Arrêter le bot
+    print("Clé de licence invalide ou déjà réservée. Arrêt du bot.")
+    exit()  # Arrêter le bot si la clé n'est pas valide ou déjà réservée
 
 
 
