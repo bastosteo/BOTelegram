@@ -3,23 +3,28 @@ import requests
 import re
 import asyncio
 import config  # On importe les paramètres utilisateur
-import requests
-import sys
+import json
 
-API_URL = "https://ton-serveur-render.com/validate"  # URL de ton serveur Render
+# Fonction pour charger les clés valides depuis le fichier JSON
+def load_licenses():
+    with open("licenses.json", "r") as file:
+        data = json.load(file)
+        return data["licenses"]
 
-def check_license():
-    try:
-        response = requests.post(API_URL, json={"key": LICENSE_KEY})
-        response.raise_for_status()
-        print("✅ Licence valide. Démarrage du bot...")
-    except requests.exceptions.RequestException:
-        print("❌ Clé de licence invalide. Fermeture du bot.")
-        sys.exit(1)
+# Vérifier si la clé du client est valide
+def is_license_valid(license_key):
+    valid_licenses = load_licenses()
+    return license_key in valid_licenses
 
-if __name__ == "__main__":
-    check_license()
-    # Démarrage du bot ici...
+# Vérification de la clé de licence
+if is_license_valid(config.license_key):
+    print("Licence valide. Démarrage du bot...")
+    # Démarre le bot ici
+else:
+    print("Clé de licence invalide. Arrêt du bot.")
+    exit()  # Arrêter le bot
+
+
 
 client = TelegramClient('session_name', config.API_ID, config.API_HASH)
 
