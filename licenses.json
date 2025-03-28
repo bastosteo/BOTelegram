@@ -1,6 +1,6 @@
 {
-  "licenses": [
-    "15252076",
-    "Vyrkuz05"
-  ]
+    "valid_licenses": {
+        "15252076": "active",
+        "Vyrkuz05": "inactive"
+    }
 }
