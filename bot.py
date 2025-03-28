@@ -4,60 +4,81 @@ import re
 import asyncio
 import config  # On importe les paramètres utilisateur
 import json
+import base64
 
-# Fonction pour récupérer les clés valides depuis GitHub
-def load_licenses():
-    url = "https://raw.githubusercontent.com/bastosteo/BOTelegram/main/licenses.json"  # URL brute du fichier JSON
-    response = requests.get(url)  # Effectue la requête GET pour récupérer le fichier
+# === PARAMÈTRES GITHUB ===
+GITHUB_REPO = "bastosteo/BOTelegram"
+FILE_PATH = "active_licenses.json"
+GITHUB_TOKEN = config.GITHUB_TOKEN
+GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
+
+# === FONCTIONS POUR LA GESTION DES LICENCES ===
+# Charge les licences actives depuis GitHub
+def load_active_licenses():
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    response = requests.get(GITHUB_API_URL, headers=headers)
+
     if response.status_code == 200:
-        data = response.json()  # Parse le JSON si la requête est réussie
-        return data["licenses"]
+        file_content = response.json()
+        decoded_content = base64.b64decode(file_content["content"]).decode("utf-8")
+        return json.loads(decoded_content)["licenses"], file_content["sha"]
     else:
-        print(f"Erreur lors du téléchargement du fichier : {response.status_code}")
-        return []
+        print(f"❌ Erreur de chargement des licences : {response.status_code}")
+        return {}, None
 
-# Fonction pour vérifier et mettre à jour l'état d'une clé
-def update_license_status(key, reserved):
-    licenses = load_licenses()  # Charge les clés depuis GitHub
-    for license in licenses:
-        if license["key"] == key:
-            license["is_reserved"] = reserved
-            break
-    # Sauvegarde les nouvelles données dans le fichier
-    with open("licenses.json", "w") as file:
-        json.dump({"licenses": licenses}, file, indent=4)
+# Ajoute une clé à active_licenses.json sur GitHub
+def add_license_to_active(license_key):
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    active_licenses, sha = load_active_licenses()
 
-# Vérifier si la clé de licence est valide et non réservée
-def is_license_valid_and_available(license_key):
-    licenses = load_licenses()  # Charge les clés depuis GitHub
-    for license in licenses:
-        if license["key"] == license_key:
-            if license["is_reserved"]:
-                send_alert(f"Alerte : La clé {license_key} est déjà utilisée par une autre personne.")
-                return False  # La clé est déjà réservée, envoie une alerte
-            else:
-                return True  # La clé est valide et disponible
-    return False  # La clé n'existe pas
+    if license_key in active_licenses:
+        print(⚠️ Clé déjà utilisée. Arrêt du bot.")
+        exit()  # Empêche le démarrage du bot
 
-# Vérifier si la clé de licence est valide et réserver la clé
-def reserve_license(license_key):
-    if is_license_valid_and_available(license_key):
-        # Réserve la clé (la rend indisponible)
-        update_license_status(license_key, reserved=True)
-        return True
+    # Marquer la clé comme active
+    active_licenses[license_key] = "active"
+    updated_content = json.dumps({"licenses": active_licenses}, indent=4)
+
+    # Envoi de la mise à jour via GitHub API
+    data = {
+        "message": "Ajout d'une licence active",
+        "content": base64.b64encode(updated_content.encode()).decode(),
+        "sha": sha
+    }
+    response = requests.put(GITHUB_API_URL, headers=headers, json=data)
+
+    if response.status_code == 200:
+        print(f"✅ Clé {license_key} activée.")
     else:
-        return False
+        print(f"❌ Erreur lors de l'ajout de la clé : {response.status_code}")
+        exit()
 
-# Vérification de la clé de licence
-if reserve_license(config.license_key):  # Vérifie et réserve la clé définie dans config.py
-    print("Licence valide et réservée. Démarrage du bot...")
-    # Démarre le bot ici (ajoute ton code de démarrage de bot)
-else:
-    print("Clé de licence invalide ou déjà réservée. Arrêt du bot.")
-    exit()  # Arrêter le bot si la clé n'est pas valide ou déjà réservée
+# Supprime une clé de active_licenses.json sur GitHub
+def remove_license_from_active(license_key):
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    active_licenses, sha = load_active_licenses()
 
+    if license_key in active_licenses:
+        del active_licenses[license_key]  # Supprime la clé
+        updated_content = json.dumps({"licenses": active_licenses}, indent=4)
 
+        # Envoi de la mise à jour via GitHub API
+        data = {
+            "message": "Suppression d'une licence active",
+            "content": base64.b64encode(updated_content.encode()).decode(),
+            "sha": sha
+        }
+        response = requests.put(GITHUB_API_URL, headers=headers, json=data)
 
+        if response.status_code == 200:
+            print(f"🔓 Clé {license_key} libérée.")
+        else:
+            print(f"❌ Erreur lors de la suppression de la clé : {response.status_code}")
+
+# Ajoute la clé avant de démarrer
+add_license_to_active(config.license_key)
+
+# === DÉMARRAGE DU BOT TELEGRAM ===
 client = TelegramClient('session_name', config.API_ID, config.API_HASH)
 
 # Regex pour détecter une adresse crypto
@@ -86,5 +107,10 @@ async def main():
     print(f'🤖 Bot connecté et à l\'écoute du canal {config.CHANNEL_ID}, surveille {config.TARGET_USER_ID}')
     await client.run_until_disconnected()
 
-with client:
-    client.loop.run_until_complete(main())
+# Suppression de la licence en cas d'arrêt du bot
+try:
+    with client:
+        client.loop.run_until_complete(main())
+except KeyboardInterrupt:
+    print("❌ Arrêt du bot. Suppression de la licence.")
+    remove_license_from_active(config.license_key)
