@@ -1,6 +1,14 @@
 {
   "licenses": [
-    "15252076",
-    "Vyrkuz05"
+    {"key": "15252076", "is_reserved": false},
+    {"key": "Vyrkuz05", "is_reserved": false},
+    {"key": "LICENSE_KEY_3", "is_reserved": false},
+    {"key": "LICENSE_KEY_4", "is_reserved": false},
+    {"key": "LICENSE_KEY_5", "is_reserved": false},
+    {"key": "LICENSE_KEY_6", "is_reserved": false},
+    {"key": "LICENSE_KEY_7", "is_reserved": false},
+    {"key": "LICENSE_KEY_8", "is_reserved": false},
+    {"key": "LICENSE_KEY_9", "is_reserved": false},
+    {"key": "LICENSE_KEY_10", "is_reserved": false}
   ]
 }
