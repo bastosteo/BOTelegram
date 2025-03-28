@@ -1,5 +1,6 @@
 # === CONFIGURATION MODIFIABLE ===
 
+license_key = "15252076"  # Remplace par la clé que le client met ici
 # Clés API Telegram
 API_ID = 21929830
 API_HASH = "bc5c60137a051a90eaf0149f683f2700"
