@@ -3,6 +3,9 @@ import json
 import config
 import base64
 import time
+import threading
+import sys
+import signal
 
 # URL du fichier active_licenses.json sur GitHub
 GITHUB_REPO = "bastosteo/BOTelegram"
@@ -25,11 +28,6 @@ def load_active_licenses():
         print(f"❌ Erreur lors du téléchargement du fichier : {response.status_code}")
         return {}, None
 
-# Fonction pour vérifier si une licence a expiré (plus de 60 secondes)
-def check_license_expiration(licenses):
-    current_time = time.time()
-    return [key for key, data in licenses.items() if current_time - data["timestamp"] > 60]
-
 # Fonction pour mettre à jour les licences actives sur GitHub
 def update_active_licenses(licenses, sha):
     headers = {"Authorization": f"token {GITHUB_TOKEN}"}
@@ -49,8 +47,19 @@ def update_active_licenses(licenses, sha):
         print(f"❌ Erreur lors de la mise à jour du fichier : {response.status_code}")
         print(response.json())
 
-# Fonction pour ajouter une nouvelle licence active
-def add_license_to_active(license_key, status):
+# Fonction pour libérer une licence
+def remove_license(license_key):
+    active_licenses, sha = load_active_licenses()
+    
+    if license_key in active_licenses:
+        del active_licenses[license_key]
+        update_active_licenses(active_licenses, sha)
+        print(f"✅ Licence {license_key} libérée.")
+    else:
+        print(f"❌ Licence {license_key} non trouvée.")
+
+# Fonction pour ajouter une licence active avec expiration automatique
+def add_license_with_timer(license_key, status):
     active_licenses, sha = load_active_licenses()
     
     if license_key in active_licenses:
@@ -59,34 +68,25 @@ def add_license_to_active(license_key, status):
     
     active_licenses[license_key] = {"status": status, "timestamp": time.time()}
     update_active_licenses(active_licenses, sha)
-
-# Fonction de suppression d'une licence
-def remove_license(license_key):
-    active_licenses, sha = load_active_licenses()
     
-    if license_key in active_licenses:
-        del active_licenses[license_key]
-        update_active_licenses(active_licenses, sha)
-        print(f"✅ Licence {license_key} supprimée avec succès.")
-    else:
-        print(f"❌ Licence {license_key} non trouvée.")
+    # Démarrer un timer pour supprimer la licence après 1 minute
+    threading.Timer(60, remove_license, [license_key]).start()
+    print(f"🕒 Licence {license_key} sera libérée dans 1 minute...")
 
-# Fonction pour nettoyer les licences expirées
-def cleanup_expired_licenses():
-    active_licenses, sha = load_active_licenses()
-    expired_licenses = check_license_expiration(active_licenses)
-    
-    if expired_licenses:
-        for license_key in expired_licenses:
-            print(f"❌ Licence {license_key} expirée, suppression.")
-            del active_licenses[license_key]
-        update_active_licenses(active_licenses, sha)
+# Gestion de la fermeture brutale du script
+def handle_exit(signum, frame):
+    print("🚨 Fermeture détectée, la licence sera libérée dans 1 minute...")
+    time.sleep(60)
+    remove_license("license_key")  # Remplace par la vraie clé du bot
+    sys.exit(0)
 
-# Fonction pour lancer le nettoyage périodique
-def start_license_cleanup():
-    while True:
-        cleanup_expired_licenses()
-        time.sleep(10)  # Vérifie toutes les 10 secondes
+# Capture des signaux pour les fermetures inattendues
+signal.signal(signal.SIGTERM, handle_exit)
+signal.signal(signal.SIGINT, handle_exit)
 
 if __name__ == "__main__":
-    start_license_cleanup()
+    bot_license_key = "my_bot_license"  # À modifier avec la clé réelle
+    add_license_with_timer(bot_license_key, "active")
+    
+    while True:
+        time.sleep(1)
