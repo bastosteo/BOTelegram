@@ -32,7 +32,7 @@ def check_license_expiration(licenses):
 
     for license_key, data in licenses.items():
         license_time = data["timestamp"]
-        if current_time - license_time > 10:  # 10 secondes
+        if current_time - license_time > 60:  # 10 secondes
             expired_licenses.append(license_key)
     
     return expired_licenses
