@@ -6,7 +6,7 @@ import base64
 # URL du fichier active_licenses.json sur GitHub
 GITHUB_REPO = "bastosteo/BOTelegram"
 FILE_PATH = "active_licenses.json"
-GITHUB_TOKEN = config.GITHUB_TOKEN
+GITHUB_TOKEN = "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"
 
 # URL pour accéder au fichier via l'API GitHub
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
