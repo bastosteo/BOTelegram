@@ -1,3 +1,5 @@
 {
-    "licenses": {}
+    "licenses": {
+        "1234": "active"
+    }
 }
