@@ -1,7 +1,7 @@
 # === CONFIGURATION MODIFIABLE ===
 
 # GITHUB Token (garde celui que tu souhaites utiliser)
-GITHUB_TOKEN = "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"  # Remplace par ton token GitHub
+GITHUB_TOKEN = "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"  # Remplace par ton token GitHub
 
 # Clé de licence (remplace par la clé fournie pour chaque client)
 license_key = "Vyrkuz05"  # Remplace par la clé que le client met ici
