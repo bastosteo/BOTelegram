@@ -10,7 +10,7 @@ import signal
 # URL du fichier active_licenses.json sur GitHub
 GITHUB_REPO = "bastosteo/BOTelegram"
 FILE_PATH = "active_licenses.json"
-GITHUB_TOKEN = "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"
+GITHUB_TOKEN = "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"
 
 # URL pour accéder au fichier via l'API GitHub
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
